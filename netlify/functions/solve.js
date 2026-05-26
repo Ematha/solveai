@@ -9,7 +9,7 @@ export const handler = async (event, context) => {
         const { parts } = JSON.parse(event.body);
 
         // 2. The API request happens on the server, keeping your key safe
-        const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent", {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
