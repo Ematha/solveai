@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assignment Solver</title>
+    <script src="browser@4.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
+
+    <header class="bg-white border-b border-slate-200 py-4 px-6 sticky top-0 z-50 shadow-xs">
+
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
+                🤖 StudyAI <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">Solver</span>
+            </h1>
+            
+            <button class=" bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-xl text-sm transition-colors shadow-sm shadow-indigo-100 flex justify-center items-center gap-2 cursor-pointer" onclick="signOut()">Sign-Out</button>
+        </div>
+        
+    </header>
+
+    <main class="max-w-4xl w-full mx-auto p-4 md:p-6 flex-grow">
+        <p class="text-xs text-slate-1000 w-full p-7 " style="font-size: 50px;text-align: center;">Your lightweight homework companion</p>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden p-6">
+            <h2 class="text-lg font-semibold mb-1">Submit Your Assignment</h2>
+            <p class="text-sm text-slate-500 mb-6">Type your question below or upload a text/document file for the AI to analyze.</p>
+
+            <form id="solverForm" class="space-y-5">
+                
+                <div>
+                    <label for="assignmentText" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Paste Assignment Text</label>
+                    <textarea id="assignmentText" rows="6" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-400" placeholder="Paste your question, essay prompt, or math problem here..."></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Or Upload a File</label>
+                    <div class="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl p-6 transition-all text-center cursor-pointer relative bg-slate-50/50">
+                        <input type="file" id="assignmentFile" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <div class="space-y-1">
+                            <p class="text-sm font-medium text-indigo-600">Click to upload a file</p>
+                            <p class="text-xs text-slate-400">PDF, DOCX, TXT, or Images up to 10MB</p>
+                        </div>
+                        <p id="fileNameDisplay" class="text-xs font-medium text-emerald-600 mt-2 hidden"></p>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-xl text-sm transition-colors shadow-sm shadow-indigo-100 flex justify-center items-center gap-2 cursor-pointer">
+                    ✨ Solve with AI
+                </button>
+            </form>
+        </div>
+
+        <div id="resultBox" class="mt-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-100 shadow-lg hidden">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> AI Explanation & Answer
+                </h3>
+                <button onclick="document.getElementById('resultBox').classList.add('hidden')" class="text-xs text-slate-400 hover:text-slate-200 cursor-pointer">Clear</button>
+            </div>
+            <div id="aiResponse" class="text-sm leading-relaxed whitespace-pre-wrap font-mono text-slate-200">
+                Processing your assignment request...
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-400 bg-white">
+        Built with Tailwind CSS & HTML API Integration
+    </footer>
+
+    <script>
+        // Check if a user is logged in
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        function signOut() {
+            localStorage.removeItem('currentUser'); // Wipe user session state
+            window.location.href = 'signin.html'; // Kick back to sign in screen
+        }
+        if (!currentUser) {
+            // If no user token exists, force them back to the sign-in page
+            alert("Please sign in first to access the AI Solver!");
+            window.location.href = 'signin.html';
+        } else {
+            // Modify your header subtitle or title dynamically to welcome them!
+            const subTitleElement = document.querySelector('main p');
+            if (subTitleElement) {
+                subTitleElement.textContent = `Welcome back, ${currentUser.name}!`;
+                subTitleElement.classList.add('text-indigo-600', 'font-medium');
+            }
+        }
+        // 1. CONFIGURATION: The correct base endpoint and your API key
+        const API_KEY = "AIzaSyARZ4FCIJ4gqKHaQ2ZWd4xpuSaa9BryWU4"; 
+        const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent";
+
+        const fileInput = document.getElementById('assignmentFile');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const form = document.getElementById('solverForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultBox = document.getElementById('resultBox');
+        const aiResponse = document.getElementById('aiResponse');
+
+        // Show the user the name of their file when selected
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileNameDisplay.textContent = `Selected: ${e.target.files[0].name}`;
+                fileNameDisplay.classList.remove('hidden');
+            }
+        });
+
+        // Helper function to convert files into Base64 format for Gemini's API
+        function fileToGenerativePart(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64Data = reader.result.split(',')[1];
+                    resolve({
+                        inlineData: {
+                            data: base64Data,
+                            mimeType: file.type
+                        },
+                    });
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Handle Form Submission to API
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Stop page from refreshing
+            
+            const textData = document.getElementById('assignmentText').value;
+            const fileData = fileInput.files[0];
+
+            // Safety check: Did they provide anything?
+            if (!textData && !fileData) {
+                alert("Please paste some text or upload an assignment file first!");
+                return;
+            }
+
+            // Update button UI to loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Analyzing assignment details...";
+            
+            // Show the result display zone
+            resultBox.classList.remove('hidden');
+            aiResponse.textContent = "Processing.";
+
+            try {
+                // Build parts array dynamically depending on what the user provided
+                let parts = [];
+                
+                if (fileData) {
+                    aiResponse.textContent = "Processing and converting your file...";
+                    const filePart = await fileToGenerativePart(fileData);
+                    parts.push(filePart);
+                }
+                
+                if (textData) {
+                    parts.push({ text: textData });
+                } else if (fileData && !textData) {
+                    // Give a default instruction if they only uploaded an image/doc without instructions
+                    parts.push({ text: "Please analyze this file and solve the assignment details found within it." });
+                }
+
+                // Set up standard JSON headers accepted by Google
+                let headers = {
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": API_KEY
+                };
+
+                // Format payload to map exactly what Gemini requires
+                let bodyData = JSON.stringify({
+                    contents: [{
+                        parts: parts
+                    }]
+                });
+
+                // Send the network request over to Gemini
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: headers,
+                    body: bodyData
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || `API Error Status Code: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Parse the native path where Gemini returns generated text strings
+                const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (generatedText) {
+                    aiResponse.textContent = generatedText;
+                } else {
+                    aiResponse.textContent = "Received response, but no legible text content was generated. Check full log:\n" + JSON.stringify(data, null, 2);
+                }
+
+            } catch (error) {
+                console.error(error);
+                aiResponse.textContent = `Something went wrong: ${error.message}\nCheck your developer console settings.`;
+            } finally {
+                // Restore Button back to normal state
+                submitBtn.disabled = false;
+                submitBtn.textContent = "✨ Solve with AI";
+            }
+        });
+    </script>
+</body>
+</html>

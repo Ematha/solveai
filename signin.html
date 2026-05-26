@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to StudyAI</title>
+    <script src="browser@4.js"></script>
+<script>
+    // Run this immediately on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        const loggedInUser = localStorage.getItem('currentUser');
+        
+        // If a user is already logged in, redirect them to the AI app page
+        if (loggedInUser) {
+            window.location.href = 'ass.html';
+        }
+    });
+</script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
+
+    <header class="bg-white border-b border-slate-200 py-4 px-6 shadow-xs">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
+                🤖 StudyAI <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">Portal</span>
+            </h1>
+        </div>
+        
+    </header>
+
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-xl p-8 max-w-md w-full">
+            
+            <div class="text-center mb-8">
+                <h2 id="authTitle" class="text-2xl font-bold text-slate-900">Welcome Back</h2>
+                <p id="authSubtitle" class="text-sm text-slate-500 mt-1">Sign in to access your AI Assignment Solver</p>
+            </div>
+
+            <div id="messageBox" class="mb-4 p-3 rounded-xl text-xs font-medium hidden"></div>
+
+            <form id="authForm" class="space-y-4">
+                
+                <div id="nameFieldGroup" class="hidden">
+                    <label for="regName" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Full Name</label>
+                    <input type="text" id="regName" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" placeholder="John Doe">
+                </div>
+
+                <div>
+                    <label for="authEmail" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Email Address</label>
+                    <input type="email" id="authEmail" required class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" placeholder="you@example.com">
+                </div>
+
+                <div>
+                    <label for="authPassword" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Password</label>
+                    <input type="password" id="authPassword" required class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" placeholder="••••••••">
+                </div>
+
+                <button type="submit" id="submitAuthBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-xl text-sm transition-colors shadow-sm cursor-pointer mt-2">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="text-center mt-6 pt-4 border-t border-slate-100 text-sm text-slate-600">
+                <span id="toggleText">Don't have an account?</span>
+                <button id="toggleAuthModeBtn" class="text-indigo-600 font-semibold hover:underline ml-1 cursor-pointer">Sign Up</button>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-400 bg-white">
+        Secure Local Session Storage Managed System
+    </footer>
+
+    <script>
+        
+        // Track whether the user is viewing 'signin' or 'signup' mode
+        let isSignUpMode = false;
+
+        const authTitle = document.getElementById('authTitle');
+        const authSubtitle = document.getElementById('authSubtitle');
+        const nameFieldGroup = document.getElementById('nameFieldGroup');
+        const regNameInput = document.getElementById('regName');
+        const emailInput = document.getElementById('authEmail');
+        const passwordInput = document.getElementById('authPassword');
+        const submitAuthBtn = document.getElementById('submitAuthBtn');
+        const toggleText = document.getElementById('toggleText');
+        const toggleAuthModeBtn = document.getElementById('toggleAuthModeBtn');
+        const messageBox = document.getElementById('messageBox');
+        const authForm = document.getElementById('authForm');
+
+        // Toggle between Sign In and Sign Up visual modes
+        toggleAuthModeBtn.addEventListener('click', () => {
+            isSignUpMode = !isSignUpMode;
+            clearMessage();
+            
+            if (isSignUpMode) {
+                authTitle.textContent = "Create an Account";
+                authSubtitle.textContent = "Join StudyAI to instantly master your school projects";
+                nameFieldGroup.classList.remove('hidden');
+                regNameInput.required = true;
+                submitAuthBtn.textContent = "Create Account";
+                toggleText.textContent = "Already have an account?";
+                toggleAuthModeBtn.textContent = "Sign In";
+            } else {
+                authTitle.textContent = "Welcome Back";
+                authSubtitle.textContent = "Sign in to access your AI Assignment Solver";
+                nameFieldGroup.classList.add('hidden');
+                regNameInput.required = false;
+                submitAuthBtn.textContent = "Sign In";
+                toggleText.textContent = "Don't have an account?";
+                toggleAuthModeBtn.textContent = "Sign Up";
+            }
+        });
+
+        // Handle form logic
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            clearMessage();
+
+            const email = emailInput.value.trim().toLowerCase();
+            const password = passwordInput.value;
+            
+            // Fetch users list from LocalStorage database (or initialize empty array if none exist)
+            let usersDatabase = JSON.parse(localStorage.getItem('studyUsers')) || [];
+
+            if (isSignUpMode) {
+                const name = regNameInput.value.trim();
+
+                // Check if user already exists
+                const userExists = usersDatabase.some(user => user.email === email);
+                if (userExists) {
+                    showMessage("An account with this email already exists!", "bg-red-50 text-red-700 border border-red-200");
+                    return;
+                }
+
+                // Save new user profile to local database object
+                const newUser = { name: name, email: email, password: password };
+                usersDatabase.push(newUser);
+                localStorage.setItem('studyUsers', JSON.stringify(usersDatabase));
+
+                showMessage("Account created successfully! Switching to Sign In...", "bg-emerald-50 text-emerald-700 border border-emerald-200");
+                
+                // Reset form fields and trigger visual flip to sign-in screen
+                authForm.reset();
+                setTimeout(() => { toggleAuthModeBtn.click(); }, 1500);
+
+            } else {
+                // Sign In Mode: Look for matching user details
+                const matchedUser = usersDatabase.find(user => user.email === email && user.password === password);
+
+                if (matchedUser) {
+                    showMessage(`Success! Recognizing user: ${matchedUser.name}...`, "bg-emerald-50 text-emerald-700 border border-emerald-200");
+                    
+                    // Store who is logged in so the AI page can read their name later
+                    localStorage.setItem('currentUser', JSON.stringify(matchedUser));
+
+                    // Redirect to your AI app file (assumed file name is index.html)
+                    setTimeout(() => {
+                        window.location.href = 'ass.html';
+                    }, 1200);
+                } else {
+                    showMessage("Invalid email or password. Please try again.", "bg-red-50 text-red-700 border border-red-200");
+                }
+            }
+        });
+
+        function showMessage(text, classes) {
+            messageBox.className = `mb-4 p-3 rounded-xl text-xs font-medium ${classes}`;
+            messageBox.textContent = text;
+            messageBox.classList.remove('hidden');
+        }
+
+        function clearMessage() {
+            messageBox.classList.add('hidden');
+            messageBox.textContent = "";
+        }
+    </script>
+</body>
+</html>
