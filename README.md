@@ -1,0 +1,2 @@
+# solveai
+SOLVE UR ASSINGNMENT WITH AI
