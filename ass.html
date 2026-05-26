@@ -74,12 +74,12 @@
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         function signOut() {
             localStorage.removeItem('currentUser'); // Wipe user session state
-            window.location.href = 'signin.html'; // Kick back to sign in screen
+            window.location.href = 'index.html'; // Kick back to sign in screen
         }
         if (!currentUser) {
             // If no user token exists, force them back to the sign-in page
             alert("Please sign in first to access the AI Solver!");
-            window.location.href = 'signin.html';
+            window.location.href = 'index.html';
         } else {
             // Modify your header subtitle or title dynamically to welcome them!
             const subTitleElement = document.querySelector('main p');
